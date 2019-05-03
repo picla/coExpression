@@ -1,6 +1,6 @@
 # differential expresison analysis from quasiMapped (salmon) data based pseudoGenomes and Araport11 annotation
 
-setwd('/Volumes/nordborg/user/pieter.clauw/Documents/Experiments/UltimateQandD/')
+setwd('/Volumes/nordborg/pub/forPieter/WGCNA/')
 
 # LIBRARIES #
 library(tximport)
