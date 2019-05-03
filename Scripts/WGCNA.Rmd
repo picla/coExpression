@@ -1,0 +1,29 @@
+---
+title: "WGCNA"
+author: "Pieter Clauw"
+date: "03/05/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tximport)
+library(DESeq2)
+source('Scripts/Rfunctions.r')
+knitr::opts_knit$set(root.dir = "/Volumes/nordborg/pub/forPieter/WGCNA/")
+```
+
+## WGCNA 6C and 16C
+Script to define co-expression of genes in multiple accessions and replicates in 6C and 16C
+
+```{r libraries}
+library(tximport)
+library(DESeq2)
+source('Scripts/Rfunctions.r')
+```
+
+
+```{r load data}
+
+```
+
