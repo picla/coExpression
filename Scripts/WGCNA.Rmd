@@ -9,21 +9,17 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 library(tximport)
 library(DESeq2)
-source('Scripts/Rfunctions.r')
+source('~/tmp/coExpression/Scripts/Rfunctions.r')
 knitr::opts_knit$set(root.dir = "/Volumes/nordborg/pub/forPieter/WGCNA/")
+options(stringsAsFactors = F)
 ```
 
 ## WGCNA 6C and 16C
 Script to define co-expression of genes in multiple accessions and replicates in 6C and 16C
 
-```{r libraries}
-library(tximport)
-library(DESeq2)
-source('Scripts/Rfunctions.r')
-```
 
-
-```{r load data}
-
+```{r load data, cache = T}
+samples<- read.table('samples.txt', header = T, comment.char = '', sep = '\t')
+Araport11 <- read.table('Araport11_GFF3_genes_transposons.201606.ChrM_ChrC_FullName.gtf')
 ```
 
