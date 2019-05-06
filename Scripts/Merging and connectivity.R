@@ -1,3 +1,4 @@
+#steps for merging (use data from 'set-specific network construction like consensus'). I created the steps also for consensus as I used it to merge the results from Mendel
 #for consensus
 sizeGrWindow(8,6)
 plotDendroAndColors(consTree, unmergedColors, "Dynamic Tree Cut",
@@ -36,10 +37,13 @@ save(moduleColors, moduleLabels, consMEs, file = '/Volumes/nordborg/pub/forPiete
 
 
 #for specific
+#enter data you want
 geneTree<-geneTree6C
 dynamicColors<- dynamicColors6C
 dynamicMods<- dynamicMods6C
 multiExpression<- multiExpr[[2]]$data
+#start
+#plot gene dendrogram with module colors
 sizeGrWindow(8,6)
 plotDendroAndColors(geneTree, dynamicColors, "Dynamic Tree Cut",
                     dendroLabels = FALSE, hang = 0.03,
@@ -51,7 +55,7 @@ MEs = MEList$eigengenes
 # Calculate dissimilarity of module eigengenes
 MEDiss = 1-cor(MEs);
 # Cluster module eigengenes
-METree = hclust(as.dist(MEDiss), method = "average");
+METree = hclust(as.dist(MEDiss), method = "average")
 # Plot the result
 sizeGrWindow(7, 6)
 plot(METree, main = "Clustering of module eigengenes",
@@ -66,7 +70,8 @@ merge = mergeCloseModules(multiExpression, dynamicMods, cutHeight = MEDissThres,
 moduleLabels = merge$colors;
 mergedColors = labels2colors(moduleLabels)
 # Eigengenes of the new merged modules:
-mergedMEs = merge$newMEs;
+mergedMEs = merge$newMEs
+#plot the new modules
 sizeGrWindow(12, 9)
 #pdf(file = "Plots/geneDendro-3.pdf", wi = 9, he = 6)
 plotDendroAndColors(geneTree, cbind(dynamicColors, mergedColors),
@@ -76,17 +81,17 @@ plotDendroAndColors(geneTree, cbind(dynamicColors, mergedColors),
 dev.off()
 # Rename to moduleColors
 moduleColors = mergedColors
-
 MEs = mergedMEs
 
+#change the names back so that you can save data
 moduleColors6C<- moduleColors
 moduleLabels6C<- moduleLabels
 MEs6C<- MEs
 
-save(moduleColors16C, moduleLabels16C, MEs16C, moduleColors6C, moduleLabels6C, MEs6C, file = '/Volumes/nordborg/pub/forPieter/WGCNA/Results/New data/Setspecific_aftermerging07_015.RData')
+save(moduleColors16C, moduleLabels16C, MEs16C, moduleColors6C, moduleLabels6C, MEs6C, file = '/Volumes/nordborg/pub/forPieter/WGCNA/Results/New data/Soft Threshold 10/Setspecific_aftermerging10_015.RData')
 
 
-#check connectivty
+#check connectivty (it's starting from genes)
 
 #method from expression data
 connectivity<-intramodularConnectivity.fromExpr(multiExpr[[1]]$data, moduleLabels16C, 
@@ -99,18 +104,21 @@ connectivity<-intramodularConnectivity.fromExpr(multiExpr[[1]]$data, moduleLabel
                                   getWholeNetworkConnectivity = TRUE)
 
 
-#method from adjacency matrix
-connectivity<-intramodularConnectivity(adjacency16C, moduleLabels16C, scaleByMax = FALSE)
+#method from adjacency matrix (the one I'm using)
+connectivity<-intramodularConnectivity(adjacency6C, moduleLabels6C, scaleByMax = FALSE)
+#change name so you can save data
+connectivity6C_10<- connectivity
 
 
-
-#save(connectivity16C_07, connectivity6C_07, file = '/Volumes/nordborg/pub/forPieter/WGCNA/Results/New data/Setspecific_connectivity07.RData')
+save(connectivity16C_10, connectivity6C_10, file = '/Volumes/nordborg/pub/forPieter/WGCNA/Results/New data/Soft Threshold 10/Setspecific_connectivity10.RData')
 
 
 #connectivity for modules
-connectivity<- connectivity6C_07
-modulecolor<-moduleColors6C
-multiExpression<- multiExpr[[2]]$data
+#enter data
+connectivity<- connectivity16C_10
+modulecolor<-moduleColors16C
+multiExpression<- multiExpr[[1]]$data
+#start
 connectivity[is.na(connectivity)] <- 0 
 connectivity$gene<- (colnames(multiExpression))
 connectivitymodules<- data.frame(matrix(0, ncol = 5, nrow = length(unique(modulecolor))))
