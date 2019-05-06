@@ -33,7 +33,8 @@ tx2gene <- data.frame('transcriptID' = Araport11[,10], 'geneID' = Araport11[,13]
 txi <- tximport(files, type = 'salmon', tx2gene = tx2gene, dropInfReps = T)
 dds.full <- DESeqDataSetFromTximport(txi, colData = samples, design = ~  replicate + accession + temperature + accession:temperature)
 dds <- estimateSizeFactors(dds.full)
-idx <- rowSums(counts(dds) >= 10 ) >= 19.80
+# select only genes with more than in 10 reads in minimum 10% of the samples
+idx <- rowSums(counts(dds) >= 10 ) >= nrow(samples) * 0.1
 dds<- dds[idx,]
 
 # variance stabilisation transform of count data
