@@ -9,6 +9,8 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 library(tximport)
 library(DESeq2)
+library(vsn)
+library(limma)
 source('~/tmp/coExpression/Scripts/Rfunctions.r')
 knitr::opts_knit$set(root.dir = "/Volumes/nordborg/pub/forPieter/WGCNA/")
 options(stringsAsFactors = F)
@@ -19,7 +21,82 @@ Script to define co-expression of genes in multiple accessions and replicates in
 
 
 ```{r load data, cache = T}
-samples<- read.table('samples.txt', header = T, comment.char = '', sep = '\t')
-Araport11 <- read.table('Araport11_GFF3_genes_transposons.201606.ChrM_ChrC_FullName.gtf')
+samples<- read.table('/Volumes/nordborg/pub/forPieter/WGCNA/samples.txt', header = T, comment.char = '', sep = '\t')
+Araport11 <- read.table('/Volumes/nordborg/pub/forPieter/WGCNA/Araport11_GFF3_genes_transposons.201606.ChrM_ChrC_FullName.gtf')
 ```
+
+```{r read in count data}
+# select samples
+samples <- samples[!samples$temperature %in% c('6C?', '16C?'), ]
+samples <- samples[samples$genoCheck == 'ok', ]
+# prepare list of samples
+samples$accession <- as.factor(samples$accession)
+samples$temperature <- as.factor(samples$temperature)
+samples$replicate <- as.factor(samples$replicate)
+# get teh filenames of selected samples
+files <- file.path('/Volumes/nordborg/pub/forPieter/WGCNA/SalmonQuantification/QuasiMap_pseudoG_Trimmed_illumina/', samples$basename, '' ,'_quasiMap_pseudoG_Trimmed_illumina/quant.sf', fsep = '')
+names(files) <- samples$sample
+
+# prepare Araport11 data
+colnames(Araport11) <- c('chr', 'source', 'feature', 'start', 'end', 'score', 'strand', 'frame', 'attributes')
+Araport11$attributes <- as.character(Araport11$attributes)
+
+# create transcript to gene annotation dataframe
+tx2gene <- data.frame('transcriptID' = Araport11[,10], 'geneID' = Araport11[,13])
+
+# import count data for selected samples
+txi <- tximport(files, type = 'salmon', tx2gene = tx2gene, dropInfReps = T)
+dds.full <- DESeqDataSetFromTximport(txi, colData = samples, design = ~  replicate + accession + temperature + accession:temperature)
+dds <- estimateSizeFactors(dds.full)
+# select only genes with more than in 10 reads in minimum 10% of the samples
+idx <- rowSums(counts(dds) >= 10 ) >= nrow(samples) * 0.1
+dds<- dds[idx,]
+```
+
+
+## Variance stabilisation
+RNA-seq coutn data is typically heteroscedastic, meansing that the variance correlates with the mean.
+The variance stabilisation will make the count data more homoscedastic.
+This cannot be done for differential expression analyis,
+but is advised for clustering, PCA and visualisation.
+For more details see [DESeQ2 preprint](https://www.biorxiv.org/content/biorxiv/early/2014/02/19/002832.full.pdf).
+
+```{r compare VST to rlog}
+dds.varStab <- varianceStabilizingTransformation(dds, blind=F)
+dds.rlog <- rlog(dds, blind=F)
+
+
+par(mfrow = c(1,2))
+meanSdPlot(assay(dds.varStab))
+meanSdPlot(assay(dds.rlog))
+```
+From the plots showing the standard deviation versus the mean of each gene, it is clear that the variance stabilizing transformation performs slighly better in reducing the heteroscedascity of the data compared to the tlog transformation.
+Therefore we continue with the variance stabilizing transformed data.
+
+## remove batch effect
+```{r check for batch effects}
+
+```
+
+
+
+```{r remove batch effect}
+
+```
+
+
+library(limma)
+assay(dds.varStab) <- removeBatchEffect(assay(dds.varStab), dds.varStab$replicate)
+
+counts.varStab <- t(assay(dds.varStab))
+
+detach("package:DESeq2", unload = T)
+detach("package:tximport", unload = T)
+library(WGCNA)
+# WGCNA
+expr6C <- counts.varStab[as.character(samples$sample[samples$temperature == '6C']), ]
+expr16C <- counts.varStab[as.character(samples$sample[samples$temperature == '16C']), ]
+
+
+
 
