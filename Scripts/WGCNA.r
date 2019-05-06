@@ -8,7 +8,7 @@ library(tximport)
 library(DESeq2)
 source('Scripts/Rfunctions.r')
 
-setwd('/Volumes/nordborg/user/pieter.clauw/Documents/Experiments/UltimateQandD/')
+setwd('/Volumes/nordborg/pub/forPieter/WGCNA/')
 # DATA 
 samples<- read.table('/Volumes/nordborg/pub/forPieter/WGCNA/samples.txt', header = T, comment.char = '', sep = '\t')
 Araport11 <- read.table('/Volumes/nordborg/pub/forPieter/WGCNA/Araport11_GFF3_genes_transposons.201606.ChrM_ChrC_FullName.gtf')
@@ -22,7 +22,7 @@ samples <- samples[samples$genoCheck == 'ok', ]
 samples$accession <- as.factor(samples$accession)
 samples$temperature <- as.factor(samples$temperature)
 samples$replicate <- as.factor(samples$replicate)
-files <- file.path('/Volumes/nordborg/pub/forPieter/WGCNA/SalmonQuantification/', samples$basename, '' ,'_quasiMap_pseudoG/quant.sf', fsep = '')
+files <- file.path('/Volumes/nordborg/pub/forPieter/WGCNA/SalmonQuantification/QuasiMap_pseudoG_Trimmed_illumina/', samples$basename, '' ,'_quasiMap_pseudoG_Trimmed_illumina/quant.sf', fsep = '')
 names(files) <- samples$sample
 
 colnames(Araport11) <- c('chr', 'source', 'feature', 'start', 'end', 'score', 'strand', 'frame', 'attributes')
@@ -39,6 +39,8 @@ dds<- dds[idx,]
 
 # variance stabilisation transform of count data
 dds.varStab <- varianceStabilizingTransformation(dds, blind = F)
+dds.rlog <- rlog(dds, blind=F)
+
 
 #remove batch effect
 library(limma)
