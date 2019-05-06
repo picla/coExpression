@@ -3,12 +3,11 @@
 library(WGCNA)
 
 #data prepearing
-networks<- list(expr16C.net, expr6C.net)
-moduleLabels<- lapply(networks, function(x) x$colors)
-moduleColors<-lapply(networks, function(x) labels2colors(x$colors))
-MEs<-lapply(networks, function(x) x$MEs)
+moduleLabels<- list(moduleLabels16C, moduleLabels6C)
+moduleColors<-list(moduleColors16C, moduleColors6C)
+MEs<-list(MEs16C, MEs6C)
 MEs<-lapply(MEs, function(x) orderMEs(x, greyName = 'MEO'))
-geneTree<-lapply(networks, function(x) x$dendrograms[[1]])
+geneTree<-list(geneTree16C, geneTree6C)
 
 # Isolate the module labels in the order they appear in ordered module eigengenes
 ModuleLabels<-lapply(MEs, function(x) substring(names(x), 3))
@@ -81,11 +80,11 @@ for (mod16 in 1:nModules[[1]]) {
 }
 
 
-#Bonferroni correction of the pvalue transhold
-transhold<- -log10(0.05/6308)
+#Bonferroni correction of the pvalue transhold (multiply number of modules)
+threshold<- -log10(0.05/6308)
 
 #clean more the table based on transhold
-ClearTable2<- ClearTable[ClearTable$p.value > transhold,]
+ClearTable2<- ClearTable[ClearTable$p.value > threshold,]
 
 #write.table(ClearTable2, file = '/Volumes/nordborg/pub/forPieter/WGCNA/Results/Table overlaps modules 6 vs 16.txt', quote = FALSE, sep = ' ', row.names = FALSE, col.names = TRUE)
 
@@ -94,8 +93,6 @@ ClearTable2<- ClearTable[ClearTable$p.value > transhold,]
 hist(ClearTable2$N_overlapped_genes/ClearTable2$N_genes16, breaks = 100, col = 'grey')
 hist(ClearTable2$N_overlapped_genes/ClearTable2$N_genes6, breaks = 100, col = 'grey')
 
-ClearTable3<- ClearTable[ClearTable$p.value < transhold,]
-length(unique(ClearTable3$NameModule16))
-length(unique(ClearTable3$NameModule6))
+
 
 
