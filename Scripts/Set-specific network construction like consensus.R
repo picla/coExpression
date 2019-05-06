@@ -1,11 +1,10 @@
-setwd('~/Network/')
 options(stringsAsFactors = FALSE)
 library(WGCNA)
-load("data/multiExpr_newparameters.RData")
+load("data/multiExpr_newparameters.RData") #I saved the expression tables, completed correct, under this name. With the new data is called 'multiExpr_newdata'
 exprSize = checkSets(multiExpr)
 nGenes = exprSize$nGenes
 
-softPower = 7
+softPower = 10
 
 #for 16C
 adjacency16C = abs(bicor(multiExpr[[1]]$data, use = "p", maxPOutliers = 0.10))^softPower
@@ -25,7 +24,7 @@ dynamicMods16C = cutreeDynamic(dendro = geneTree16C, distM = dissTOM,
 # Convert numeric lables into colors
 dynamicColors16C = labels2colors(dynamicMods16C)
 
-softPower=7
+softPower=10
 #for 6C
 adjacency6C = abs(bicor(multiExpr[[2]]$data, use = "p", maxPOutliers = 0.10))^softPower
 # Turn adjacency into topological overlap
