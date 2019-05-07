@@ -11,6 +11,7 @@ library(tximport)
 library(DESeq2)
 library(vsn)
 library(limma)
+library(ggplot2)
 source('~/tmp/coExpression/Scripts/Rfunctions.r')
 knitr::opts_knit$set(root.dir = "/Volumes/nordborg/pub/forPieter/WGCNA/")
 options(stringsAsFactors = F)
@@ -75,27 +76,78 @@ Therefore we continue with the variance stabilizing transformed data.
 
 ## remove batch effect
 ```{r check for batch effects}
-
+# PCA plot
+pcaData <- plotPCA(dds.varStab, intgroup=c("replicate", "temperature"), returnData=T)
+percentVar <- round(100 * attr(pcaData, "percentVar"))
+ggplot(pcaData, aes(PC1, PC2, color=replicate, shape=temperature)) +
+  geom_point(size=3) +
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
+  coord_fixed()
 ```
-
-
+The replicate effect is not obvious in the data.
+PC1 is mainly splitting up in the two temperatures
+PC2 is a split up between Col-0 (6909) and the rest.
 
 ```{r remove batch effect}
+dds.varStab.NB <- dds.varStab
+assay(dds.varStab.NB) <- removeBatchEffect(assay(dds.varStab.NB), dds.varStab.NB$replicate)
 
+pcaData <- plotPCA(dds.varStab.NB, intgroup=c("temperature", "accession"), returnData=T)
+percentVar <- round(100 * attr(pcaData, "percentVar"))
+ggplot(pcaData, aes(PC1, PC2, color=temperature, shape=accession)) +
+  geom_point(size=3) +
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
+  coord_fixed()
+counts.varStab.NB <- t(assay(dds.varStab.NB))
+```
+After removing batch effect, the temperature split within each accession is more clearly defined.
+Therefore we continue with the batch correct data.
+
+
+## WGCNA
+Step-by-step network construction
+```{r data for WGCNA}
+counts.varStab.NB <- t(assay(dds.varStab.NB))
+expr.6C <- counts.varStab.NB[as.character(samples$sample[samples$temperature == '6C']), ]
+expr.16C <- counts.varStab.NB[as.character(samples$sample[samples$temperature == '16C']), ]
+# combine data of both temperatures in a list
+nSets <- 2
+expr<- vector(mode = "list", length = nSets)
+expr[[1]] = list(data = as.data.frame(expr.6C))
+expr[[2]] = list(data = as.data.frame(expr.16C))
 ```
 
-
-library(limma)
-assay(dds.varStab) <- removeBatchEffect(assay(dds.varStab), dds.varStab$replicate)
-
-counts.varStab <- t(assay(dds.varStab))
-
+```{r library change, include = F}
 detach("package:DESeq2", unload = T)
 detach("package:tximport", unload = T)
 library(WGCNA)
-# WGCNA
-expr6C <- counts.varStab[as.character(samples$sample[samples$temperature == '6C']), ]
-expr16C <- counts.varStab[as.character(samples$sample[samples$temperature == '16C']), ]
+```
+
+```{r data QC}
+#checkSets(expr)
+#par(mfrow=c(6,4))
+# QQ scatter plots, chekc normal distribution of expressiond aat within each samples
+for (i in 1:nSets)
+{
+  readmatrix <- expr[[i]]$data
+  for (j in 1:nrow(readmatrix))
+  {
+    sampleiwant <- t(readmatrix[j,])
+    qqnorm(sampleiwant, pch = 1, frame = FALSE, main = paste(names(expr[i]), 'sample', row.names(readmatrix)[j], sep = ' '))
+    qqline(sampleiwant, col = "red", lwd = 2)
+  }
+}
+
+```
+For each sample, the expression seems normally distributed, based on QQ-plots
+
+
+
+
+
+
 
 
 
