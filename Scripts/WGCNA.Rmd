@@ -115,8 +115,9 @@ expr.16C <- counts.varStab.NB[as.character(samples$sample[samples$temperature ==
 # combine data of both temperatures in a list
 nSets <- 2
 expr<- vector(mode = "list", length = nSets)
-expr[[1]] = list(data = as.data.frame(expr.6C))
-expr[[2]] = list(data = as.data.frame(expr.16C))
+expr[[1]] <- list(data = as.data.frame(expr.6C))
+expr[[2]] <- list(data = as.data.frame(expr.16C))
+names(expr) <- c('6C', '16C')
 ```
 
 ```{r library change, include = F}
@@ -141,14 +142,168 @@ for (i in 1:nSets)
 }
 
 ```
-For each sample, the expression seems normally distributed, based on QQ-plots
+For each sample, the expression seems normally distributed, based on QQ-plot.
+
+```{r filter genes}
+# filter out genes with too many missing values and zero variance acrosse samples.
+# for consensus, boht datastes need to be checked simultaneously. Use geneFilterMS.
+expr.filter <- vector(mode = "list", length = nSets)
+for (i in 1:nSets)
+{
+  expr.filter[[i]] <- list(data = geneFilter(expr[[i]]$data))
+}
+names(expr.filter) <- names(expr)
+checkSets(expr.filter, checkStructure = T)
+```
+
+```{r pick soft threshold}
+for (i in 1:nSets)
+{
+  
+  plotSoftThresholdChoices(expr.filter[[i]]$data, maxSoftThrs = 30, title = names(expr.filter)[i])
+}
+```
+
+```{r set softThreshold}
+expr.filter[[1]]$softThreshold <- 6
+expr.filter[[2]]$softThreshold <- 20
+```
+Based on scale-free topology we have chosen two different soft thresholds.
+For the 6C expression data, a soft threshold of `r expr.filter[[1]]$softThreshold` seems to be the better choice.
+Whie for teh 16C data set, we opt for a soft threshold of `r expr.filter[[2]]$softThreshold`.
+
+
+```{r adjacencies}
+for (i in 1:nSets)
+{
+  expr.filter[[i]]$adjacency <- adjacency(expr.filter[[i]]$data, power = expr.filter[[i]]$softThreshold);
+}
+```
+## calculating topological overlap matrices
+Warning: This step is memory heavy.
+Sometimes R gives an rrror: vector memory exhausted (limit reached?)
+Memoty allocated to R in Rstudio can be increased.
+Instructions:
+in console:
+touch .Renviron
+open .Renviron
+
+add to this file:
+R_MAX_VSIZE=20Gb
+
+20Gb was succesful on a 16Gb mac.
+Restart Rstudio
+
+```{r TOM}
+for (i in 1:nSets)
+{
+  expr.filter[[i]]$TOM <- TOMsimilarity(expr.filter[[i]]$adjacency)
+  # prevent too much memory usage by not saving the dissimilarity matrix but create it when needed with 1-TOM
+#  expr.filter[[i]]$dissTOM <- 1 - expr.filter[[i]]$TOM
+}
+```
+
+```{r dendrograms}
+collectGarbage()
+for (i in 1:nSets)
+{
+  # hierarchical clustering
+  expr.filter[[i]]$geneTree <- hclust(as.dist(1- expr.filter[[i]]$TOM), method = "average")
+  # plot dendrogram
+  sizeGrWindow(12,9)
+  plot(expr.filter[[i]]$geneTree, xlab="", sub="", main = paste("Gene clustering on TOM-based dissimilarity for", names(expr.filter[i])), labels = FALSE, hang = 0.04)
+}
+```
+
+
+```{r get modules}
+for (i in 1:nSets)
+{
+  # We like large modules, so we set the minimum module size relatively high:
+  minModuleSize <- 10
+  # Module identification using dynamic tree cut:
+  expr.filter[[i]]$dynamicMods <- cutreeDynamic(dendro = expr.filter[[i]]$geneTree, distM = 1 - expr.filter[[i]]$TOM,
+  deepSplit = 1, pamRespectsDendro = FALSE,
+  minClusterSize = minModuleSize)
+  table(expr.filter[[i]]$dynamicMods)
+}
+```
+
+```{r size distribution unmerged}
+for (i in 1:nSets)
+{
+  hist(expr.filter[[i]]$dynamicMods, main = names(expr.filter[i]))
+}
+```
 
 
 
 
 
+```{r plot modules}
+for (i in 1:nSets)
+{
+  # Convert numeric lables into colors
+  expr.filter[[i]]$dynamicColors <- labels2colors(expr.filter[[i]]$dynamicMods)
+  # table(dynamicColors)
+  # Plot the dendrogram and colors underneath
+  sizeGrWindow(8,6)
+  plotDendroAndColors(expr.filter[[i]]$geneTree, expr.filter[[i]]$dynamicColors, "Dynamic Tree Cut",
+  dendroLabels = FALSE, hang = 0.03,
+  addGuide = TRUE, guideHang = 0.05,
+  main = paste("Gene dendrogram and module colors for", names(expr.filter)[i]))
+}
+```
+
+# Merge clusters that are similar
+```{r merge similar clusters}
+for (i in 1:nSets)
+{
+  # Calculate eigengenes
+  MEList <- moduleEigengenes(expr.filter[[i]]$data, colors <-  expr.filter[[i]]$dynamicColors)
+  MEs = MEList$eigengenes
+  # Calculate dissimilarity of module eigengenes
+  MEDiss = 1-cor(MEs)
+  # Cluster module eigengenes
+  METree = hclust(as.dist(MEDiss), method = "average")
+  # Plot the result
+  sizeGrWindow(7, 6)
+  plot(METree, main = paste("Clustering of module eigengenes", names(expr.filter)[i]),
+  xlab = "", sub = "")
+  
+  MEDissThres <- 0.25
+  # Plot the cut line into the dendrogram
+  abline(h=MEDissThres, col = "red")
+  # Call an automatic merging function
+  merge <- mergeCloseModules(expr.filter[[i]]$data, expr.filter[[i]]$dynamicColors, cutHeight = MEDissThres, verbose = 3)
+  # The merged module colors
+  expr.filter[[i]]$mergedColors <- merge$colors
+  # translate into moduel labels
+  colorOrder = c("grey", standardColors(length(table(expr.filter[[i]]$mergedColors))))
+  expr.filter[[i]]$mergedLabels <- match(expr.filter[[i]]$mergedColors, colorOrder)-1
+  # Eigengenes of the new merged modules:
+  mergedMEs <- merge$newMEs
+  
+  sizeGrWindow(12, 9)
+  plotDendroAndColors(expr.filter[[i]]$geneTree, cbind(expr.filter[[i]]$dynamicColors, expr.filter[[i]]$mergedColors),
+  c("Dynamic Tree Cut", "Merged dynamic"),
+  dendroLabels = FALSE, hang = 0.03,
+  addGuide = TRUE, guideHang = 0.05,
+  main = paste(names(expr.filter)[i]))
+}
 
 
+```
+
+
+```{r size distribution unmerged}
+for (i in 1:nSets)
+{
+  hist(expr.filter[[i]]$mergedLabels, main = names(expr.filter[i]))
+}
+```
+
+## Check quality of modules based on connectivity
 
 
 
