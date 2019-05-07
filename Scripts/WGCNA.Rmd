@@ -304,6 +304,30 @@ for (i in 1:nSets)
 ```
 
 ## Check quality of modules based on connectivity
+```{r connectivity}
+
+for (i in 1:nSets)
+{
+  expr.filter[[i]]$geneConnectivity <- intramodularConnectivity(expr.filter[[i]]$adjacency, expr.filter[[i]]$mergedColors, scaleByMax = FALSE)
+  # summarize per module
+  modules <- unique(na.omit(expr.filter[[i]]$mergedLabels))
+  # TODO: write function to summarize kWithin, kOut, and their ratio per module
+  expr.filter[[i]]$moduleConnectivity <- lapply(modules, FUN(summarizeConnectivity))
+  names(expr.filter[[i]]$moduleConnectivity) <- modules
+}
+
+# TeMP function
+summarizeConnectivity <- function(module, expr)
+{
+  # correct the geneIdx, length is not total gene number!!!
+  geneIdx <- expr$mergedLabels[expr$mergedLabels == module]
+  Kwithin <- mean(expr$connectivity$kWithin[expr$mergedLabels == module])
+  
+}
+
+
+```
+
 
 
 
