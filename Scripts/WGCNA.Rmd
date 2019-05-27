@@ -382,8 +382,9 @@ Threshold<- -log10(0.05/((length(expr.filter[[1]]$Modules))*(length(expr.filter[
 
 ClearTable<- data.frame('NameModule16'= character(), 'NameModule6'=character(), 'N_totgenes16'=integer(), 'N_totgenes6'=integer(), 'N_overlapped_genes'=integer(), 'p-value'=integer())
 
-Table.overlap(expr = expr.filter, pTable = pTable, Threshold = Threshold, CountTbl = CountTbl)
+ClearTable<-Table.overlap(expr = expr.filter, pTable = pTable, Threshold = Threshold, CountTbl = CountTbl)
 
+kable(ClearTable)
 ```
 
 
