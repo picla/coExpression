@@ -266,16 +266,16 @@ Before, we plot the clustering of module eigengenes to decide the level where to
 for (i in 1:nSets)
 {
   # Calculate eigengenes
-  MEList <- moduleEigengenes(expr.filter[[i]]$data, colors <-  expr.filter[[i]]$dynamicColors)
-  MEs = MEList$eigengenes
+  MEList <- moduleEigengenes(expr.filter[[i]]$data, colors=  expr.filter[[i]]$dynamicColors)
+  MEs <- MEList$eigengenes
   # Calculate dissimilarity of module eigengenes
-  MEDiss = 1-cor(MEs)
+  MEDiss = 1-cor(expr.filter[[i]]$MEs)
   # Cluster module eigengenes
   METree = hclust(as.dist(MEDiss), method = "average")
   # Plot the result
   sizeGrWindow(7, 6)
   plot(METree, main = paste("Clustering of module eigengenes", names(expr.filter)[i]),
-  xlab = "", sub = "", cex=0.5)
+  xlab = "", sub = "", cex=0.3)
   
   MEDissThres <- 0.15
   # Plot the cut line into the dendrogram
@@ -286,6 +286,8 @@ for (i in 1:nSets)
 Now we can merge 
 
 ```{r merge similar clusters}
+#this step is different comparing to the tutorial for set-specific network construction and it's taken from the tutorial for consensus as it seems to work better (with the first one the moduleLabels it's not giving the same number of modules as the moduleColors, don't know why)
+
 for (i in 1:nSets)
 {
   # Call an automatic merging function
@@ -294,8 +296,8 @@ for (i in 1:nSets)
   expr.filter[[i]]$mergedLabels <- merge$colors
   # translate into module colors
   expr.filter[[i]]$mergedColors <- labels2colors(expr.filter[[i]]$mergedLabels)
-  # Eigengenes of the new merged modules:
-  mergedMEs <- merge$newMEs
+  # Eigengenes of the new merged modules
+  expr.filter[[i]]$MEs <- merge$newMEs
   
   sizeGrWindow(12, 9)
   plotDendroAndColors(expr.filter[[i]]$geneTree, cbind(expr.filter[[i]]$dynamicColors, expr.filter[[i]]$mergedColors),
@@ -341,6 +343,35 @@ for (i in 1:nSets)
 
 ```
 
+## Find overlaps between 6C and 16C
+
+```{r overlap 6C and 16C}
+for (i in 1:nSets) {
+  expr.filter[[i]]$MEs<- orderMEs(expr.filter[[i]]$MEs, greyName = 'MEO')
+  # Isolate the module labels in the order they appear in ordered module eigengenes
+  ModuleLabels<- substring(names(expr.filter[[i]]$MEs), 3)
+  # Convert the numeric module labels to color labels
+  expr.filter[[i]]$Modules<- labels2colors(as.numeric(ModuleLabels))
+}
+# Initialize tables of p-values and of the corresponding counts
+pTable<- matrix(0, nrow = length(expr.filter[[1]]$Modules), ncol = length(expr.filter[[2]]$Modules))
+CountTbl<- matrix(0, nrow = length(expr.filter[[1]]$Modules), ncol = length(expr.filter[[2]]$Modules))
+
+# Execute all pairwaise comparisons
+for (mod6 in 1:length(expr.filter[[1]]$Modules)) {
+  for (mod16 in 1:length(expr.filter[[2]]$Modules)) {
+    Members6 <- (expr.filter[[1]]$mergedColors == expr.filter[[1]]$Modules[mod6])
+    Members16 <- (expr.filter[[2]]$mergedColors == expr.filter[[2]]$Modules[mod16])
+     pTable[mod6, mod16] = -log10(fisher.test(Members6, Members16, alternative = "greater")$p.value);
+    CountTbl[mod6, mod16] = sum(expr.filter[[1]]$moduleColors == expr.filter[[1]]$Modules[mod6] & expr.filter[[2]]$moduleColors == expr.filter[[2]]$Modules[mod16])
+  }
+}
+
+#create color-coded table of the intersection counts
+Heatmap_overlap(pTable = pTable, CountTbl = CountTbl, expr = expr.filter)
+
+#the figure it's to big, i will add soon the script to create a table which shows everything clearer 
+```
 
 
 

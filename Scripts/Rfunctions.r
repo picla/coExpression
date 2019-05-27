@@ -92,3 +92,29 @@ summarizeConnectivity <- function(expr, modules)
   return(expr$moduleConnectivity)
 }
 
+
+#create color-coded table of the intersection counts
+# Truncate p values smaller than 10^{-50} to 10^{-50}
+Heatmap_overlap<- function(pTable, CountTbl, expr) {
+  pTable[is.infinite(pTable)] = 1.3*max(pTable[is.finite(pTable)])
+  pTable[pTable>50 ] = 50 
+  # Marginal counts (really module sizes)
+  ModTotal<- list(apply(CountTbl, 1, sum), apply(CountTbl, 2, sum))
+  # Actual plotting
+  sizeGrWindow(10,7)
+  #pdf(file = "/Volumes/nordborg/pub/forPieter/WGCNA/Results/Overlap modules 6 vs16.pdf", wi = 10, he = 7);
+  par(mfrow=c(1,1));
+  par(cex = 1.0);
+  par(mar=c(8, 10.4, 2.7, 1)+0.3)
+  # Use function labeledHeatmap to produce the color-coded table with all the trimmings
+  labeledHeatmap(Matrix = pTable,
+                 xLabels = paste(" ", expr[[2]]$Modules),
+                 yLabels = paste(" ", expr[[1]]$Modules),
+                 colorLabels = TRUE,
+                 xSymbols = paste("16 ", expr[[2]]$Modules, ": ", ModTotal[[2]], sep=""),
+                 ySymbols = paste("6 ", expr[[1]]$Modules, ": ", ModTotal[[1]], sep=""),
+                 textMatrix = CountTbl,
+                 colors = greenWhiteRed(100)[50:100],
+                 main = "Correspondence of 6 set-specific and 16 set-specific modules",
+                 cex.text = 0.5, cex.lab = 0.5, setStdMargins = FALSE);
+}
