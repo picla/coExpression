@@ -2,17 +2,21 @@
 title: "WGCNA"
 author: "Pieter Clauw"
 date: "03/05/2019"
-output: pdf_document
+output: html_notebook
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
 library(tximport)
 library(DESeq2)
 library(vsn)
 library(limma)
 library(ggplot2)
-source('~/tmp/coExpression/Scripts/Rfunctions.r')
+source('~/Desktop/CoExpression New/Scripts/Rfunctions.r')
 knitr::opts_knit$set(root.dir = "/Volumes/nordborg/pub/forPieter/WGCNA/")
 options(stringsAsFactors = F)
 ```
@@ -34,7 +38,7 @@ samples <- samples[samples$genoCheck == 'ok', ]
 samples$accession <- as.factor(samples$accession)
 samples$temperature <- as.factor(samples$temperature)
 samples$replicate <- as.factor(samples$replicate)
-# get teh filenames of selected samples
+# get the filenames of selected samples
 files <- file.path('/Volumes/nordborg/pub/forPieter/WGCNA/SalmonQuantification/QuasiMap_pseudoG_Trimmed_illumina/', samples$basename, '' ,'_quasiMap_pseudoG_Trimmed_illumina/quant.sf', fsep = '')
 names(files) <- samples$sample
 
@@ -100,7 +104,6 @@ ggplot(pcaData, aes(PC1, PC2, color=temperature, shape=accession)) +
   xlab(paste0("PC1: ",percentVar[1],"% variance")) +
   ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
   coord_fixed()
-counts.varStab.NB <- t(assay(dds.varStab.NB))
 ```
 After removing batch effect, the temperature split within each accession is more clearly defined.
 Therefore we continue with the batch correct data.
@@ -145,8 +148,8 @@ for (i in 1:nSets)
 For each sample, the expression seems normally distributed, based on QQ-plot.
 
 ```{r filter genes}
-# filter out genes with too many missing values and zero variance acrosse samples.
-# for consensus, boht datastes need to be checked simultaneously. Use geneFilterMS.
+# filter out genes with too many missing values and zero variance across samples.
+# for consensus, both datasets need to be checked simultaneously. Use geneFilterMS.
 expr.filter <- vector(mode = "list", length = nSets)
 for (i in 1:nSets)
 {
@@ -176,7 +179,7 @@ Whie for teh 16C data set, we opt for a soft threshold of `r expr.filter[[2]]$so
 ```{r adjacencies}
 for (i in 1:nSets)
 {
-  expr.filter[[i]]$adjacency <- adjacency(expr.filter[[i]]$data, power = expr.filter[[i]]$softThreshold);
+  expr.filter[[i]]$adjacency <- abs(bicor(expr.filter[[i]]$data, use = "p", maxPOutliers = 0.10))^expr.filter[[i]]$softThreshold 
 }
 ```
 ## calculating topological overlap matrices
@@ -256,7 +259,10 @@ for (i in 1:nSets)
 ```
 
 # Merge clusters that are similar
-```{r merge similar clusters}
+
+Before, we plot the clustering of module eigengenes to decide the level where to merge
+
+```{r decide level to merge}
 for (i in 1:nSets)
 {
   # Calculate eigengenes
@@ -269,18 +275,25 @@ for (i in 1:nSets)
   # Plot the result
   sizeGrWindow(7, 6)
   plot(METree, main = paste("Clustering of module eigengenes", names(expr.filter)[i]),
-  xlab = "", sub = "")
+  xlab = "", sub = "", cex=0.5)
   
-  MEDissThres <- 0.25
+  MEDissThres <- 0.15
   # Plot the cut line into the dendrogram
   abline(h=MEDissThres, col = "red")
+}
+```
+
+Now we can merge 
+
+```{r merge similar clusters}
+for (i in 1:nSets)
+{
   # Call an automatic merging function
-  merge <- mergeCloseModules(expr.filter[[i]]$data, expr.filter[[i]]$dynamicColors, cutHeight = MEDissThres, verbose = 3)
-  # The merged module colors
-  expr.filter[[i]]$mergedColors <- merge$colors
-  # translate into moduel labels
-  colorOrder = c("grey", standardColors(length(table(expr.filter[[i]]$mergedColors))))
-  expr.filter[[i]]$mergedLabels <- match(expr.filter[[i]]$mergedColors, colorOrder)-1
+  merge <- mergeCloseModules(expr.filter[[i]]$data, expr.filter[[i]]$dynamicMods, cutHeight = MEDissThres, verbose = 3)
+  # The merged module labels
+  expr.filter[[i]]$mergedLabels <- merge$colors
+  # translate into module colors
+  expr.filter[[i]]$mergedColors <- labels2colors(expr.filter[[i]]$mergedLabels)
   # Eigengenes of the new merged modules:
   mergedMEs <- merge$newMEs
   
@@ -292,11 +305,10 @@ for (i in 1:nSets)
   main = paste(names(expr.filter)[i]))
 }
 
-
 ```
 
 
-```{r size distribution unmerged}
+```{r size distribution merged}
 for (i in 1:nSets)
 {
   hist(expr.filter[[i]]$mergedLabels, main = names(expr.filter[i]))
@@ -306,27 +318,30 @@ for (i in 1:nSets)
 ## Check quality of modules based on connectivity
 ```{r connectivity}
 
-for (i in 1:nSets)
-{
-  expr.filter[[i]]$geneConnectivity <- intramodularConnectivity(expr.filter[[i]]$adjacency, expr.filter[[i]]$mergedColors, scaleByMax = FALSE)
-  # summarize per module
-  modules <- unique(na.omit(expr.filter[[i]]$mergedLabels))
-  # TODO: write function to summarize kWithin, kOut, and their ratio per module
-  expr.filter[[i]]$moduleConnectivity <- lapply(modules, FUN(summarizeConnectivity))
-  names(expr.filter[[i]]$moduleConnectivity) <- modules
-}
-
 # TeMP function
-summarizeConnectivity <- function(module, expr)
-{
-  # correct the geneIdx, length is not total gene number!!!
-  geneIdx <- expr$mergedLabels[expr$mergedLabels == module]
-  Kwithin <- mean(expr$connectivity$kWithin[expr$mergedLabels == module])
-  
+#start with gene connectivity
+for (i in 1:nSets) {
+  expr.filter[[i]]$geneConnectivity <- intramodularConnectivity(expr.filter[[i]]$adjacency, expr.filter[[i]]$mergedLabels, scaleByMax = FALSE)
+  # summarize per module
+  modules <- unique(na.omit(expr.filter[[i]]$mergedColors))
+  table <- data.frame('Module name'= character(), 'KWithin'= integer(), 'KOut'= integer(), 'Quality module'=integer())
+  expr.filter[[i]]$moduleConnectivity <- table
+  expr.filter[[i]]$moduleConnectivity<- summarizeConnectivity(expr.filter[[i]], modules=modules)
 }
-
 
 ```
+
+Module quality
+
+```{r module quality distribution}
+for (i in 1:nSets)
+{
+  hist(expr.filter[[i]]$moduleConnectivity$Quality.module, main = names(expr.filter[i]))
+}
+
+```
+
+
 
 
 
