@@ -16,7 +16,7 @@ library(DESeq2)
 library(vsn)
 library(limma)
 library(ggplot2)
-source('~/Desktop/CoExpression New/Scripts/Rfunctions.r')
+source('Rfunctions.r')
 knitr::opts_knit$set(root.dir = "/Volumes/nordborg/pub/forPieter/WGCNA/")
 options(stringsAsFactors = F)
 ```
