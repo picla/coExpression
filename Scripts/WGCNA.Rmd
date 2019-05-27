@@ -22,8 +22,7 @@ options(stringsAsFactors = F)
 ```
 
 ## WGCNA 6C and 16C
-Script to define co-expression of genes in multiple accessions and replicates in 6C and 16C
-
+Script to define co-expression of genes over multiple accessions and replicates in 6C and 16C
 
 ```{r load data, cache = T}
 samples<- read.table('/Volumes/nordborg/pub/forPieter/WGCNA/samples.txt', header = T, comment.char = '', sep = '\t')
@@ -81,9 +80,9 @@ Therefore we continue with the variance stabilizing transformed data.
 ## remove batch effect
 ```{r check for batch effects}
 # PCA plot
-pcaData <- plotPCA(dds.varStab, intgroup=c("replicate", "temperature"), returnData=T)
+pcaData <- plotPCA(dds.varStab, intgroup=c("temperature", "replicate"), returnData=T)
 percentVar <- round(100 * attr(pcaData, "percentVar"))
-ggplot(pcaData, aes(PC1, PC2, color=replicate, shape=temperature)) +
+ggplot(pcaData, aes(PC1, PC2, color=temperature, shape=replicate)) +
   geom_point(size=3) +
   xlab(paste0("PC1: ",percentVar[1],"% variance")) +
   ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
@@ -92,6 +91,27 @@ ggplot(pcaData, aes(PC1, PC2, color=replicate, shape=temperature)) +
 The replicate effect is not obvious in the data.
 PC1 is mainly splitting up in the two temperatures
 PC2 is a split up between Col-0 (6909) and the rest.
+
+### check samples per accession
+```{r PCA per accession}
+# PCA plot
+for (acn in unique(samples$accession))
+{
+  samples.a <- samples$sample[samples$accession == acn]
+  dds.varStab.a <- dds.varStab[dds.varStab$sample %in% samples.a, ]
+  dds.varStab.a <-dds.varStab[ , dds.varStab$accession == acn]
+  pcaData <- plotPCA(dds.varStab.a, intgroup=c("temperature", "replicate"), returnData=T)
+  percentVar <- round(100 * attr(pcaData, "percentVar"))
+  ggplot(pcaData, aes(PC1, PC2, color=temperature, shape=replicate)) +
+  geom_point(size=3) +
+  ggtitle(acn) +
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
+  coord_fixed()
+}
+```
+
+
 
 ```{r remove batch effect}
 dds.varStab.NB <- dds.varStab
