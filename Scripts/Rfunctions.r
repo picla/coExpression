@@ -118,3 +118,20 @@ Heatmap_overlap<- function(pTable, CountTbl, expr) {
                  main = "Correspondence of 6 set-specific and 16 set-specific modules",
                  cex.text = 0.5, cex.lab = 0.5, setStdMargins = FALSE);
 }
+
+Table.overlap<- function(expr, pTable, Threshold, CountTbl) {
+  for (mod6 in 1:length(expr[[1]]$Modules)) {
+    for (mod16 in 1:length(expr[[2]]$Modules)) {
+      if (pTable[mod6, mod16] > Threshold) {
+        lineiwant<- data.frame('NameModule16'= expr[[2]]$Modules[mod16], 
+                               'NameModule6'= expr[[1]]$Modules[mod6], 
+                               'N_totgenes16'= count(expr[[2]]$mergedColors == expr[[2]]$Modules[mod16]), 
+                               'N_totgenes6'= count(expr[[1]]$mergedColors == expr[[1]]$Modules[mod6]), 
+                               'N_overlapped_genes'= CountTbl[mod6, mod16],
+                               'p-value'=pTable[mod6,mod16])
+        ClearTable<- rbind(ClearTable, lineiwant) 
+     next }
+    }
+  }
+  return(ClearTable)
+}

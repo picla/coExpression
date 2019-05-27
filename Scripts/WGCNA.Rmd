@@ -363,14 +363,27 @@ for (mod6 in 1:length(expr.filter[[1]]$Modules)) {
     Members6 <- (expr.filter[[1]]$mergedColors == expr.filter[[1]]$Modules[mod6])
     Members16 <- (expr.filter[[2]]$mergedColors == expr.filter[[2]]$Modules[mod16])
      pTable[mod6, mod16] = -log10(fisher.test(Members6, Members16, alternative = "greater")$p.value);
-    CountTbl[mod6, mod16] = sum(expr.filter[[1]]$moduleColors == expr.filter[[1]]$Modules[mod6] & expr.filter[[2]]$moduleColors == expr.filter[[2]]$Modules[mod16])
+    CountTbl[mod6, mod16] = sum(expr.filter[[1]]$mergedColors == expr.filter[[1]]$Modules[mod6] & expr.filter[[2]]$mergedColors == expr.filter[[2]]$Modules[mod16])
   }
 }
 
 #create color-coded table of the intersection counts
 Heatmap_overlap(pTable = pTable, CountTbl = CountTbl, expr = expr.filter)
 
-#the figure it's to big, i will add soon the script to create a table which shows everything clearer 
+#the figure it's too big, i will add soon the script to create a table which shows everything clearer 
+```
+
+Create a table which describes better the overlaps, use Bonferroni correction
+
+```{r clear table describing overlaps between 6C and 16C}
+
+#set a threshold to visualize the overlaps with Bonferroni correction
+Threshold<- -log10(0.05/((length(expr.filter[[1]]$Modules))*(length(expr.filter[[2]]$Modules))))
+
+ClearTable<- data.frame('NameModule16'= character(), 'NameModule6'=character(), 'N_totgenes16'=integer(), 'N_totgenes6'=integer(), 'N_overlapped_genes'=integer(), 'p-value'=integer())
+
+Table.overlap(expr = expr.filter, pTable = pTable, Threshold = Threshold, CountTbl = CountTbl)
+
 ```
 
 
