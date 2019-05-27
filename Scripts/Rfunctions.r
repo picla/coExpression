@@ -80,16 +80,17 @@ plotSoftThresholdChoices <- function(exprData, maxSoftThrs = 20, title)
 # Module Connectivity calculation
 summarizeConnectivity <- function(expr, modules)
 {
-  for (j in 1:length(modules)) {
-  module <- modules[[j]]  
-  geneIdx <- colnames(expr$data)[expr$mergedColors == module]
-  Kwithin <- mean(expr$geneConnectivity$kWithin[rownames(expr$geneConnectivity) %in% geneIdx])
-  KOut <- mean(expr$geneConnectivity$kOut[rownames(expr$geneConnectivity) %in% geneIdx])
-  Module.Quality <- Kwithin/KOut
-  lineiwant <- data.frame('Module name'= module, 'KWithin'= Kwithin, 'KOut'= KOut, 'Quality module'= Module.Quality)
-  expr$moduleConnectivity <- rbind(expr$moduleConnectivity, lineiwant)
+  moduleConnectivity <- data.frame('Module name'= character(), 'KWithin'= numeric(), 'KOut'= numeric(), 'Quality module'= numeric())
+  for (module in modules)
+  {
+    geneIdx <- colnames(expr$data)[expr$mergedColors == module]
+    Kwithin <- mean(expr$geneConnectivity$kWithin[rownames(expr$geneConnectivity) %in% geneIdx])
+    KOut <- mean(expr$geneConnectivity$kOut[rownames(expr$geneConnectivity) %in% geneIdx])
+    Module.Quality <- Kwithin/KOut
+    lineiwant <- data.frame('Module name'= module, 'KWithin'= Kwithin, 'KOut'= KOut, 'Quality module'= Module.Quality)
+    moduleConnectivity <- rbind(moduleConnectivity, lineiwant)
   }
-  return(expr$moduleConnectivity)
+  return(moduleConnectivity)
 }
 
 

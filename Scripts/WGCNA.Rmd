@@ -257,7 +257,7 @@ for (i in 1:nSets)
 ```{r size distribution unmerged}
 for (i in 1:nSets)
 {
-  hist(expr.filter[[i]]$dynamicMods, main = names(expr.filter[i]))
+  hist(table(expr.filter[[i]]$dynamicMods), main = names(expr.filter[i]))
 }
 ```
 
@@ -291,7 +291,7 @@ for (i in 1:nSets)
   MEList <- moduleEigengenes(expr.filter[[i]]$data, colors=  expr.filter[[i]]$dynamicColors)
   MEs <- MEList$eigengenes
   # Calculate dissimilarity of module eigengenes
-  MEDiss = 1-cor(expr.filter[[i]]$MEs)
+  MEDiss = 1-cor(MEs)
   # Cluster module eigengenes
   METree = hclust(as.dist(MEDiss), method = "average")
   # Plot the result
@@ -335,7 +335,7 @@ for (i in 1:nSets)
 ```{r size distribution merged}
 for (i in 1:nSets)
 {
-  hist(expr.filter[[i]]$mergedLabels, main = names(expr.filter[i]))
+  hist(table(expr.filter[[i]]$mergedColors), main = names(expr.filter[i]), breaks = 50)
 }
 ```
 
@@ -345,11 +345,9 @@ for (i in 1:nSets)
 # TeMP function
 #start with gene connectivity
 for (i in 1:nSets) {
-  expr.filter[[i]]$geneConnectivity <- intramodularConnectivity(expr.filter[[i]]$adjacency, expr.filter[[i]]$mergedLabels, scaleByMax = FALSE)
+  expr.filter[[i]]$geneConnectivity <- intramodularConnectivity(expr.filter[[i]]$adjacency, expr.filter[[i]]$mergedColors, scaleByMax = FALSE)
   # summarize per module
   modules <- unique(na.omit(expr.filter[[i]]$mergedColors))
-  table <- data.frame('Module name'= character(), 'KWithin'= integer(), 'KOut'= integer(), 'Quality module'=integer())
-  expr.filter[[i]]$moduleConnectivity <- table
   expr.filter[[i]]$moduleConnectivity<- summarizeConnectivity(expr.filter[[i]], modules=modules)
 }
 
