@@ -16,17 +16,17 @@ library(DESeq2)
 library(vsn)
 library(limma)
 library(ggplot2)
-source('~/Desktop/CoExpression New/Scripts/Rfunctions.r')
+source('Rfunctions.r')
 knitr::opts_knit$set(root.dir = "/Volumes/nordborg/pub/forPieter/WGCNA/")
 options(stringsAsFactors = F)
 ```
 
 ## WGCNA 6C and 16C
-Script to define co-expression of genes in multiple accessions and replicates in 6C and 16C
-
+Script to define co-expression of genes over multiple accessions and replicates in 6C and 16C
 
 ```{r load data, cache = T}
 samples<- read.table('/Volumes/nordborg/pub/forPieter/WGCNA/samples.txt', header = T, comment.char = '', sep = '\t')
+#samples$seqBatch <- c(rep(1, 4), rep(2, 18), rep(3, 2))
 Araport11 <- read.table('/Volumes/nordborg/pub/forPieter/WGCNA/Araport11_GFF3_genes_transposons.201606.ChrM_ChrC_FullName.gtf')
 ```
 
@@ -38,6 +38,7 @@ samples <- samples[samples$genoCheck == 'ok', ]
 samples$accession <- as.factor(samples$accession)
 samples$temperature <- as.factor(samples$temperature)
 samples$replicate <- as.factor(samples$replicate)
+
 # get the filenames of selected samples
 files <- file.path('/Volumes/nordborg/pub/forPieter/WGCNA/SalmonQuantification/QuasiMap_pseudoG_Trimmed_illumina/', samples$basename, '' ,'_quasiMap_pseudoG_Trimmed_illumina/quant.sf', fsep = '')
 names(files) <- samples$sample
@@ -81,9 +82,9 @@ Therefore we continue with the variance stabilizing transformed data.
 ## remove batch effect
 ```{r check for batch effects}
 # PCA plot
-pcaData <- plotPCA(dds.varStab, intgroup=c("replicate", "temperature"), returnData=T)
+pcaData <- plotPCA(dds.varStab, intgroup=c("temperature", "replicate"), returnData=T)
 percentVar <- round(100 * attr(pcaData, "percentVar"))
-ggplot(pcaData, aes(PC1, PC2, color=replicate, shape=temperature)) +
+ggplot(pcaData, aes(PC1, PC2, color=temperature, shape=replicate)) +
   geom_point(size=3) +
   xlab(paste0("PC1: ",percentVar[1],"% variance")) +
   ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
@@ -92,6 +93,27 @@ ggplot(pcaData, aes(PC1, PC2, color=replicate, shape=temperature)) +
 The replicate effect is not obvious in the data.
 PC1 is mainly splitting up in the two temperatures
 PC2 is a split up between Col-0 (6909) and the rest.
+
+### check samples per accession
+```{r PCA per accession}
+# PCA plot
+for (acn in unique(samples$accession))
+{
+  samples.a <- samples$sample[samples$accession == acn]
+  dds.varStab.a <- dds.varStab[dds.varStab$sample %in% samples.a, ]
+  dds.varStab.a <-dds.varStab[ , dds.varStab$accession == acn]
+  pcaData <- plotPCA(dds.varStab.a, intgroup=c("temperature", "replicate"), returnData=T)
+  percentVar <- round(100 * attr(pcaData, "percentVar"))
+  print(ggplot(pcaData, aes(PC1, PC2, color=temperature, shape=replicate)) +
+  geom_point(size=3) +
+  ggtitle(acn) +
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
+  coord_fixed())
+}
+```
+
+
 
 ```{r remove batch effect}
 dds.varStab.NB <- dds.varStab
@@ -184,7 +206,7 @@ for (i in 1:nSets)
 ```
 ## calculating topological overlap matrices
 Warning: This step is memory heavy.
-Sometimes R gives an rrror: vector memory exhausted (limit reached?)
+Sometimes R gives an error: vector memory exhausted (limit reached?)
 Memoty allocated to R in Rstudio can be increased.
 Instructions:
 in console:
@@ -235,7 +257,7 @@ for (i in 1:nSets)
 ```{r size distribution unmerged}
 for (i in 1:nSets)
 {
-  hist(expr.filter[[i]]$dynamicMods, main = names(expr.filter[i]))
+  hist(table(expr.filter[[i]]$dynamicMods), main = names(expr.filter[i]))
 }
 ```
 
@@ -269,7 +291,7 @@ for (i in 1:nSets)
   MEList <- moduleEigengenes(expr.filter[[i]]$data, colors=  expr.filter[[i]]$dynamicColors)
   MEs <- MEList$eigengenes
   # Calculate dissimilarity of module eigengenes
-  MEDiss = 1-cor(expr.filter[[i]]$MEs)
+  MEDiss = 1-cor(MEs)
   # Cluster module eigengenes
   METree = hclust(as.dist(MEDiss), method = "average")
   # Plot the result
@@ -313,7 +335,7 @@ for (i in 1:nSets)
 ```{r size distribution merged}
 for (i in 1:nSets)
 {
-  hist(expr.filter[[i]]$mergedLabels, main = names(expr.filter[i]))
+  hist(table(expr.filter[[i]]$mergedColors), main = names(expr.filter[i]), breaks = 50)
 }
 ```
 
@@ -323,11 +345,9 @@ for (i in 1:nSets)
 # TeMP function
 #start with gene connectivity
 for (i in 1:nSets) {
-  expr.filter[[i]]$geneConnectivity <- intramodularConnectivity(expr.filter[[i]]$adjacency, expr.filter[[i]]$mergedLabels, scaleByMax = FALSE)
+  expr.filter[[i]]$geneConnectivity <- intramodularConnectivity(expr.filter[[i]]$adjacency, expr.filter[[i]]$mergedColors, scaleByMax = FALSE)
   # summarize per module
   modules <- unique(na.omit(expr.filter[[i]]$mergedColors))
-  table <- data.frame('Module name'= character(), 'KWithin'= integer(), 'KOut'= integer(), 'Quality module'=integer())
-  expr.filter[[i]]$moduleConnectivity <- table
   expr.filter[[i]]$moduleConnectivity<- summarizeConnectivity(expr.filter[[i]], modules=modules)
 }
 
