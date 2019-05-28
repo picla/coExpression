@@ -363,6 +363,17 @@ for (i in 1:nSets)
 
 ```
 
+Create a table for the relative connectivity (divide for the number of genes connected)
+
+```{r relative module connectivity}
+
+for (i in 1:nSets) {
+  modules <- unique(na.omit(expr.filter[[i]]$mergedColors))
+  expr.filter[[i]]$modulerelativeConnectivity<- RelativeConnectivity(expr = expr.filter[[i]], modules = modules)
+}
+
+```
+
 ## Find overlaps between 6C and 16C
 
 ```{r overlap 6C and 16C}
@@ -390,7 +401,6 @@ for (mod6 in 1:length(expr.filter[[1]]$Modules)) {
 #create color-coded table of the intersection counts
 Heatmap_overlap(pTable = pTable, CountTbl = CountTbl, expr = expr.filter)
 
-#the figure it's too big, i will add soon the script to create a table which shows everything clearer 
 ```
 
 Create a table which describes better the overlaps, use Bonferroni correction

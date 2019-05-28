@@ -93,6 +93,29 @@ summarizeConnectivity <- function(expr, modules)
   return(moduleConnectivity)
 }
 
+#Relative module connectivity calculation
+RelativeConnectivity <- function(expr, modules)
+{
+  module.relativeConnectivity <- data.frame('Module name'= character(), 'KWithin'= numeric(), 'KOut'= numeric(), 'Quality module'= numeric())
+  for (module in modules)
+  {
+    geneIdx <- colnames(expr$data)[expr$mergedColors == module]
+    Kwithin<- c()
+    KOut<- c()
+    for (gene in geneIdx) {
+      Kwithin <- c(Kwithin, expr$geneConnectivity$kWithin[rownames(expr$geneConnectivity) == gene])
+      KOut <- c(KOut, expr$geneConnectivity$kOut[rownames(expr$geneConnectivity) == gene])
+    }
+    relative.Kwithin <- Kwithin/(length(geneIdx)-1)
+    relative.KOut <- KOut/(length(colnames(expr$data))-(length(geneIdx)))
+    KWithin.module<- mean(relative.Kwithin)
+    KOut.module <- mean(relative.KOut)
+    Module.Quality <- KWithin.module/KOut.module
+    lineiwant <- data.frame('Module name'= module, 'KWithin'= KWithin.module, 'KOut'= KOut.module, 'Quality module'= Module.Quality)
+    module.relativeConnectivity <- rbind(module.relativeConnectivity, lineiwant)
+  }
+  return(module.relativeConnectivity)
+}
 
 #create color-coded table of the intersection counts
 # Truncate p values smaller than 10^{-50} to 10^{-50}
