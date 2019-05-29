@@ -190,7 +190,7 @@ for (i in 1:nSets)
 ```
 
 ```{r set softThreshold}
-expr.filter[[1]]$softThreshold <- 12
+expr.filter[[1]]$softThreshold <- 20
 expr.filter[[2]]$softThreshold <- 20
 ```
 Based on scale-free topology we have chosen two different soft thresholds.
@@ -349,6 +349,7 @@ for (i in 1:nSets) {
   # summarize per module
   modules <- unique(na.omit(expr.filter[[i]]$mergedColors))
   expr.filter[[i]]$moduleConnectivity<- summarizeConnectivity(expr.filter[[i]], modules=modules)
+  print(expr.filter[[i]]$moduleConnectivity)
 }
 
 ```
@@ -370,6 +371,7 @@ Create a table for the relative connectivity (divide for the number of genes con
 for (i in 1:nSets) {
   modules <- unique(na.omit(expr.filter[[i]]$mergedColors))
   expr.filter[[i]]$modulerelativeConnectivity<- RelativeConnectivity(expr = expr.filter[[i]], modules = modules)
+  print(expr.filter[[i]]$modulerelativeConnectivity)
 }
 
 ```
@@ -453,7 +455,9 @@ for (i in 43:nrow(ClearTable)) {
   }
 }
 
+kable(TableGO)
 #TableGO saved in Results
+save(TableGO, file = '/Volumes/nordborg/pub/forPieter/WGCNA/Final Results/Table GO terms in common 6C 16C.RData')
 ```
  
 
