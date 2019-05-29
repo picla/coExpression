@@ -190,7 +190,7 @@ for (i in 1:nSets)
 ```
 
 ```{r set softThreshold}
-expr.filter[[1]]$softThreshold <- 6
+expr.filter[[1]]$softThreshold <- 12
 expr.filter[[2]]$softThreshold <- 20
 ```
 Based on scale-free topology we have chosen two different soft thresholds.
@@ -373,6 +373,14 @@ for (i in 1:nSets) {
 }
 
 ```
+Relative Module Quality
+```{r relative module quality distribution}
+for (i in 1:nSets)
+{
+  hist(expr.filter[[i]]$modulerelativeConnectivity$Quality.module, main = names(expr.filter[i]))
+}
+```
+
 
 ## Find overlaps between 6C and 16C
 
@@ -416,7 +424,38 @@ ClearTable<-Table.overlap(expr = expr.filter, pTable = pTable, Threshold = Thres
 
 kable(ClearTable)
 ```
+ ## Go enrichment for modules of interest
+ Creation of a table which describes the biological processes in common 
+ 
+```{r Go enrichment}
+ClearTable[order(-ClearTable$p.value),]
+library(topGO)
+#use annotation and geneuniverse saved
+load('/Volumes/nordborg/pub/forPieter/WGCNA/Results/GeneUniverse&Annotation.RData')
+TableGO<- data.frame('Name module 16C'= as.character(), 'Name module 6C'= as.character(), 'GO term'= as.character(), 'Function'= as.character())
+for (i in 43:nrow(ClearTable)) {
+  modulename<- c(ClearTable$NameModule6[[i]], ClearTable$NameModule16[[i]])
+  Results<-list()
+  for (j in 1:length(modulename)) {
+    #extract genes 
+    x<- modulename[[j]]
+    genesinmodule<- colnames(expr.filter[[j]]$data)[expr.filter[[j]]$mergedColors == x]
+    Results[[j]]<- Top.Go(genesinmodule, go_ids, genesuniverse, gene_2_GO)
+  }
+  #creation of a table with results
+  for (Go6 in Results[[1]]$GO.ID) {
+    for (Go16 in Results[[2]]$GO.ID) {
+      if (Go6 == Go16) {
+         lineiwant<- data.frame('Name module 16C'= modulename[[2]], 'Name module 6C'= modulename[[1]], 'GO term'= Go6, 'Function'= Results[[1]]$Term[Results[[1]]$GO.ID == Go6])
+        TableGO<-rbind(TableGO, lineiwant)
+      next}
+    }
+  }
+}
 
+#TableGO saved in Results
+```
+ 
 
 
 

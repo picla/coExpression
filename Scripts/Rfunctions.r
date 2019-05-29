@@ -140,7 +140,7 @@ Heatmap_overlap<- function(pTable, CountTbl, expr) {
                  textMatrix = CountTbl,
                  colors = greenWhiteRed(100)[50:100],
                  main = "Correspondence of 6 set-specific and 16 set-specific modules",
-                 cex.text = 0.5, cex.lab = 0.5, setStdMargins = FALSE);
+                 cex.text = 0.3, cex.lab = 0.3, setStdMargins = FALSE);
 }
 
 Table.overlap<- function(expr, pTable, Threshold, CountTbl) {
@@ -158,4 +158,36 @@ Table.overlap<- function(expr, pTable, Threshold, CountTbl) {
     }
   }
   return(ClearTable)
+}
+
+#Function Go enrichment
+Top.Go<- function (genesinmodule, go_ids, genesuniverse, gene_2_GO) {
+  # remove any candidate genes without GO annotation
+  keep = genesinmodule %in% go_ids[,2]
+  keep =which(keep==TRUE)
+  mygenes=genesinmodule[keep]
+  
+  # make named factor showing which genes are of interest
+  geneList=factor(as.integer(genesuniverse %in% mygenes))
+  names(geneList)= genesuniverse
+  #make topGO data object
+  GOdata=new('topGOdata', ontology='BP', allGenes = geneList, annot = annFUN.gene2GO, gene2GO = gene_2_GO)
+  
+  # define test using the classic algorithm with fisher 
+  classic_fisher_result=runTest(GOdata, algorithm='classic', statistic='fisher')
+  # define test using the weight01 algorithm (default) with fisher
+  weight_fisher_result=runTest(GOdata, algorithm='weight01', statistic='fisher') 
+  
+  # generate a table of results: GenTable function to generate a summary table with the results from tests applied to the topGOdata object.
+  allGO=usedGO(GOdata)
+  all_res=GenTable(GOdata, weightFisher=weight_fisher_result, orderBy='weightFisher', topNodes=length(allGO))
+  #performing BH correction on our p values
+  p.adj=round(p.adjust(all_res$weightFisher,method="BH"),digits = 4)
+  
+  # create the file with all the statistics from GO analysis
+  all_res_final=cbind(all_res,p.adj)
+  all_res_final=all_res_final[order(all_res_final$p.adj),]
+  
+  Results<- as.data.frame(all_res_final[1:50,])
+  return(Results)
 }
