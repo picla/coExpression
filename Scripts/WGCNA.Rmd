@@ -420,22 +420,22 @@ Create a table which describes better the overlaps, use Bonferroni correction
 #set a threshold to visualize the overlaps with Bonferroni correction
 Threshold<- -log10(0.05/((length(expr.filter[[1]]$Modules))*(length(expr.filter[[2]]$Modules))))
 
-ClearTable<- data.frame('NameModule16'= character(), 'NameModule6'=character(), 'N_totgenes16'=integer(), 'N_totgenes6'=integer(), 'N_overlapped_genes'=integer(), 'p-value'=integer())
+ClearTable<- data.frame('Name module 16C'= character(), 'Name module 6C'=character(), 'N_totgenes16'=integer(), 'N_totgenes6'=integer(), 'N_overlapped_genes'=integer(), 'p-value'=integer())
 
 ClearTable<-Table.overlap(expr = expr.filter, pTable = pTable, Threshold = Threshold, CountTbl = CountTbl)
 
 kable(ClearTable)
 ```
  ## Go enrichment for modules of interest
- Creation of a table which describes the biological processes in common 
+ Creation of a table which describes the biological processes in common (the result will be ordered by decreasing p-value) 
  
-```{r Go enrichment}
+```{r Go enrichment for module in common}
 ClearTable[order(-ClearTable$p.value),]
 library(topGO)
 #use annotation and geneuniverse saved
 load('/Volumes/nordborg/pub/forPieter/WGCNA/Results/GeneUniverse&Annotation.RData')
 TableGO<- data.frame('Name module 16C'= as.character(), 'Name module 6C'= as.character(), 'GO term'= as.character(), 'Function'= as.character())
-for (i in 43:nrow(ClearTable)) {
+for (i in 1:nrow(ClearTable)) {
   modulename<- c(ClearTable$NameModule6[[i]], ClearTable$NameModule16[[i]])
   Results<-list()
   for (j in 1:length(modulename)) {
@@ -459,7 +459,46 @@ kable(TableGO)
 #TableGO saved in Results
 save(TableGO, file = '/Volumes/nordborg/pub/forPieter/WGCNA/Final Results/Table GO terms in common 6C 16C.RData')
 ```
+
+I want to understand why modules overlap and check their level of expression
+
+```{r check behaviour of modules in common}
+#create graph of behaviour
+
+for (i in 1:nrow(ClearTable)) {
+  sizeGrWindow(100, 10)
+  par(xpd=TRUE, mfrow = c(2,1))
+  cex1 = 0.9
+  for (j in 1:nSets) {
+  columnname<- paste('Name.module.', names(expr.filter[j]), sep = '' )
+  module<- ClearTable[,columnname][[i]]
+  what.to.plot<- expr.filter[[j]]$data[colnames(expr.filter[[j]]$data) %in% colnames(expr.filter[[j]]$data)[expr.filter[[j]]$mergedColors == module]]
+   Genes.behaviour(xrange = range(1:nrow(what.to.plot)), yrange = range(what.to.plot), Tableplot = what.to.plot, expr = expr.filter[j]) 
+  }
+}
+
+```
  
+Find specific modules for every temperature
+
+```{r Specific modules analysis}
+for (i in 1:nSets) {
+  columnname<- paste('Name.module.', names(expr.filter[i]), sep = '' )
+  expr.filter[[i]]$Specific.modules<- (unique(expr.filter[[i]]$mergedColors))[!((unique(expr.filter[[i]]$mergedColors)) %in% (unique(TableGO[,columnname])))]
+}
+```
+
+```{r GO enrichment on specific modules}
+library(topGO)
+for (i in 1:nSets) {
+  for (module in expr.filter[[i]]$Specific.modules) {
+    genesinmodule<- colnames(expr.filter[[i]]$data)[expr.filter[[i]]$mergedColors == module]
+    Result<- Top.Go(genesinmodule, go_ids, genesuniverse, gene_2_GO)
+    #save the result
+    write.table(Result, paste('/Volumes/nordborg/pub/forPieter/WGCNA/Final Results/GO for specific modules/', names(expr.filter[i]), '/summary_topGO_analysis_', module, '.csv', sep=''), sep=",",quote=FALSE,row.names=FALSE)
+  }
+}
+```
 
 
 

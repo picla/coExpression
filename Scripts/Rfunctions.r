@@ -147,8 +147,8 @@ Table.overlap<- function(expr, pTable, Threshold, CountTbl) {
   for (mod6 in 1:length(expr[[1]]$Modules)) {
     for (mod16 in 1:length(expr[[2]]$Modules)) {
       if (pTable[mod6, mod16] > Threshold) {
-        lineiwant<- data.frame('NameModule16'= expr[[2]]$Modules[mod16], 
-                               'NameModule6'= expr[[1]]$Modules[mod6], 
+        lineiwant<- data.frame('Name module 16C'= expr[[2]]$Modules[mod16], 
+                               'Name module 6C'= expr[[1]]$Modules[mod6], 
                                'N_totgenes16'= count(expr[[2]]$mergedColors == expr[[2]]$Modules[mod16]), 
                                'N_totgenes6'= count(expr[[1]]$mergedColors == expr[[1]]$Modules[mod6]), 
                                'N_overlapped_genes'= CountTbl[mod6, mod16],
@@ -191,3 +191,18 @@ Top.Go<- function (genesinmodule, go_ids, genesuniverse, gene_2_GO) {
   Results<- as.data.frame(all_res_final[1:50,])
   return(Results)
 }
+
+Genes.behaviour<- function(xrange, yrange, Tableplot, expr) {
+#set up the plot
+plot(NA, NA, xlim=xrange, ylim = yrange, xaxt = 'n', type='n', xlab='Name sample', ylab='Expression level', main=paste('Expression level genes in module', module,  names(expr), sep = ' '))
+axis(1, at=1:12, labels = rownames(Tableplot), cex.axis=0.5)
+colors <- rainbow(ncol(Tableplot))
+#legend('topright', inset = c(-0.2,-0.1), colnames(Tableplot), fill =colors, cex=0.5)
+#add lines
+for (i in 1:ncol(Tableplot)) {
+  lines(Tableplot[i], type='l', lwd=1.5, col=colors[[i]])
+ }
+}
+
+
+
